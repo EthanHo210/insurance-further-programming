@@ -6,22 +6,35 @@ import java.util.*;
 enum ClaimStatus {
     NEW, PROCESSING, DONE;
 }
-class FileManager {
-    private static final String POLICY_HOLDERS_FILE = "policyholders.txt";
-    private static final String CLAIMS_FILE = "claims.txt";
 
-    public static void readPolicyHoldersFromFile(List<PolicyHolder> policyHolders) {
-        try (Scanner scanner = new Scanner(new File(POLICY_HOLDERS_FILE))) {
+class FileManager {
+    private static final String CLAIMS_FILE = "claims.txt";
+    private static final String CUSTOMERS_FILE = "customers.txt";
+
+    public static void readCustomersFromFile(List<Customer> customers) {
+        try (Scanner scanner = new Scanner(new File(CUSTOMERS_FILE))) {
             while (scanner.hasNextLine()) {
-                String[] policyHolderData = scanner.nextLine().split(",");
-                String id = policyHolderData[0];
-                String fullName = policyHolderData[1];
-                long cardNumber = Long.parseLong(policyHolderData[2]);
-                InsuranceCard insuranceCard = new InsuranceCard(cardNumber, "holder", "owner", new Date());
-                PolicyHolder policyHolder = new PolicyHolder(id, fullName, insuranceCard);
-                policyHolders.add(policyHolder);
+                String[] customerData = scanner.nextLine().split(",");
+                String fullName = customerData[0];
+                int age = Integer.parseInt(customerData[1]);
+                String gender = customerData[2];
+                String address = customerData[3];
+                String phoneNumber = customerData[4];
+                Customer customer = new Customer(fullName, age, gender, address, phoneNumber);
+                customers.add(customer);
             }
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void writeCustomersToFile(List<Customer> customers) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(CUSTOMERS_FILE))) {
+            for (Customer customer : customers) {
+                writer.println(customer.getFullName() + "," + customer.getAge() + "," +
+                        customer.getGender() + "," + customer.getAddress() + "," + customer.getPhoneNumber());
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -42,20 +55,10 @@ class FileManager {
                 for (int i = 10; i < claimData.length; i++) {
                     documents.add(claimData[i]);
                 }
-                Claim claim = new Claim(id, claimDate, insuredPerson, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
+                Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
                 claims.add(claim);
             }
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void writePolicyHoldersToFile(List<PolicyHolder> policyHolders) {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(POLICY_HOLDERS_FILE))) {
-            for (PolicyHolder policyHolder : policyHolders) {
-                writer.println(policyHolder.id + "," + policyHolder.fullName + "," + policyHolder.insuranceCard.getCardNumber());
-            }
-        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -67,7 +70,6 @@ class FileManager {
                 StringBuilder claimData = new StringBuilder();
                 claimData.append(claim.getId()).append(",")
                         .append(dateFormat.format(claim.getClaimDate())).append(",")
-                        .append(claim.getInsuredPerson()).append(",")
                         .append(claim.getCardNumber()).append(",")
                         .append(dateFormat.format(claim.getExamDate())).append(",")
                         .append(claim.getClaimAmount()).append(",")
@@ -87,7 +89,6 @@ class FileManager {
         }
     }
 
-
     private static Date parseDate(String dateStr) {
         try {
             return new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
@@ -98,7 +99,41 @@ class FileManager {
     }
 }
 
+class Customer {
+    private String fullName;
+    private int age;
+    private String gender;
+    private String address;
+    private String phoneNumber;
 
+    public Customer(String fullName, int age, String gender, String address, String phoneNumber) {
+        this.fullName = fullName;
+        this.age = age;
+        this.gender = gender;
+        this.address = address;
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+}
 
 abstract class Person {
     protected String id; // Format c-numbers (c-0000001)
@@ -152,7 +187,6 @@ class InsuranceCard {
 class Claim {
     private String id; // Format f-numbers (f-0000000001)
     private Date claimDate;
-    private String insuredPerson;
     private long cardNumber;
     private Date examDate;
     private List<String> documents; // Format ClaimId_CardNumber_DocumentName.pdf
@@ -160,11 +194,10 @@ class Claim {
     private ClaimStatus status;
     private ReceiverBankingInfo receiverBankingInfo;
 
-    public Claim(String id, Date claimDate, String insuredPerson, long cardNumber, Date examDate,
+    public Claim(String id, Date claimDate, long cardNumber, Date examDate,
                  List<String> documents, double claimAmount, ClaimStatus status, ReceiverBankingInfo receiverBankingInfo) {
         this.id = id;
         this.claimDate = claimDate;
-        this.insuredPerson = insuredPerson;
         this.cardNumber = cardNumber;
         this.examDate = examDate;
         this.documents = documents;
@@ -180,11 +213,6 @@ class Claim {
     public Date getClaimDate() {
         return claimDate;
     }
-
-    public String getInsuredPerson() {
-        return insuredPerson;
-    }
-
     public long getCardNumber() {
         return cardNumber;
     }
@@ -214,7 +242,6 @@ class Claim {
     }
 }
 
-
 class ReceiverBankingInfo {
     private String bankName;
     private String accountName;
@@ -239,7 +266,6 @@ class ReceiverBankingInfo {
     }
 }
 
-
 interface ClaimProcessManager {
     void addClaim(Claim claim);
     void updateClaim(String id, Claim updatedClaim);
@@ -259,13 +285,28 @@ class ClaimManager {
         }
     }
 
-    public static void addClaim(Scanner scanner, List<Claim> claims) {
+    public static void addClaim(Scanner scanner, List<Claim> claims, List<Customer> customers) {
+        System.out.println("Enter customer details:");
+        System.out.print("Full Name: ");
+        String fullName = scanner.nextLine();
+        System.out.print("Age: ");
+        int age = Integer.parseInt(scanner.nextLine());
+        System.out.print("Gender: ");
+        String gender = scanner.nextLine();
+        System.out.print("Address: ");
+        String address = scanner.nextLine();
+        System.out.print("Phone Number: ");
+        String phoneNumber = scanner.nextLine();
+
+        Customer customer = new Customer(fullName, age, gender, address, phoneNumber);
+        customers.add(customer);
+
+        System.out.println("Enter claim details:");
         System.out.print("Enter claim ID: ");
         String id = scanner.nextLine();
         System.out.print("Enter claim date (YYYY-MM-DD): ");
         Date claimDate = parseDate(scanner.nextLine());
-        System.out.print("Enter insured person: ");
-        String insuredPerson = scanner.nextLine();
+        // Remove the insuredPerson input as it's not needed anymore
         System.out.print("Enter card number: ");
         long cardNumber = Long.parseLong(scanner.nextLine());
         System.out.print("Enter exam date (YYYY-MM-DD): ");
@@ -288,11 +329,11 @@ class ClaimManager {
             documents.add(scanner.nextLine());
         }
         ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(bankName, accountName, accountNumber);
-        Claim claim = new Claim(id, claimDate, insuredPerson, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
+        // Update the constructor call to remove the insuredPerson argument
+        Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
         claims.add(claim);
         System.out.println("Claim added successfully.");
     }
-
     public static void updateClaim(Scanner scanner, List<Claim> claims) {
         System.out.print("Enter claim ID to update: ");
         String idToUpdate = scanner.nextLine();
@@ -338,9 +379,9 @@ class ClaimManager {
 public class InsuranceClaimsSystem {
     public static void main(String[] args) {
         // Initialize system components
-        List<PolicyHolder> policyHolders = new ArrayList<>();
+        List<Customer> customers = new ArrayList<>();
         List<Claim> claims = new ArrayList<>();
-        FileManager.readPolicyHoldersFromFile(policyHolders);
+        FileManager.readCustomersFromFile(customers);
         FileManager.readClaimsFromFile(claims);
 
         // Sample interaction (actual UI implementation may vary)
@@ -361,7 +402,7 @@ public class InsuranceClaimsSystem {
 
             switch (choice) {
                 case 1:
-                    ClaimManager.addClaim(scanner, claims);
+                    ClaimManager.addClaim(scanner, claims, customers);
                     break;
                 case 2:
                     ClaimManager.updateClaim(scanner, claims);
@@ -379,9 +420,8 @@ public class InsuranceClaimsSystem {
                     System.out.println("Invalid choice. Please try again.");
             }
 
-
             // Write data back to files before exiting
-            FileManager.writePolicyHoldersToFile(policyHolders);
+            FileManager.writeCustomersToFile(customers);
             FileManager.writeClaimsToFile(claims);
         }
         // Close scanner
