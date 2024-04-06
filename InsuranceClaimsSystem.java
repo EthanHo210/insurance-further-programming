@@ -47,22 +47,26 @@ class FileManager {
         try (Scanner scanner = new Scanner(new File(CLAIMS_FILE))) {
             while (scanner.hasNextLine()) {
                 String[] claimData = scanner.nextLine().split(",");
-                if (claimData.length < 9) {
+                if (claimData.length < 10) {
                     System.out.println("Invalid line format: " + Arrays.toString(claimData)); // Debug output
                     continue; // Skip this line and proceed to the next one
                 }
-                String id = claimData[0];
-                Date claimDate = parseDate(claimData[1]);
-                long cardNumber = Long.parseLong(claimData[2]);
-                Date examDate = parseDate(claimData[3]);
-                double claimAmount =- Double.parseDouble(claimData[4]);
-                ClaimStatus status = ClaimStatus.valueOf(claimData[5]);
-                ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(claimData[6], claimData[7], claimData[8]);
+                String fullName = claimData[0];
+                String id = claimData[1];
+                Date claimDate = parseDate(claimData[2]);
+                long cardNumber = Long.parseLong(claimData[3]);
+                Date examDate = parseDate(claimData[4]);
+                double claimAmount = Double.parseDouble(claimData[5]);
+                ClaimStatus status = ClaimStatus.valueOf(claimData[6]);
+                String bankName = claimData[7];
+                String accountName = claimData[8];
+                String accountNumber = claimData[9];
                 List<String> documents = new ArrayList<>();
-                for (int i = 9; i < claimData.length; i++) {
+                for (int i = 10; i < claimData.length; i++) {
                     documents.add(claimData[i]);
                 }
-                Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
+                ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(bankName, accountName, accountNumber);
+                Claim claim = new Claim(fullName, id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
                 claims.add(claim);
             }
         } catch (FileNotFoundException e) {
@@ -75,7 +79,8 @@ class FileManager {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             for (Claim claim : claims) {
                 StringBuilder claimData = new StringBuilder();
-                claimData.append(claim.getId()).append(",")
+                claimData.append(claim.getFullName()).append(",")
+                        .append(claim.getId()).append(",")
                         .append(dateFormat.format(claim.getClaimDate())).append(",")
                         .append(claim.getCardNumber()).append(",")
                         .append(dateFormat.format(claim.getExamDate())).append(",")
@@ -192,6 +197,7 @@ class InsuranceCard {
 }
 
 class Claim {
+    private String fullName;
     private String id;
     private Date claimDate;
     private long cardNumber;
@@ -201,8 +207,9 @@ class Claim {
     private ClaimStatus status;
     private ReceiverBankingInfo receiverBankingInfo;
 
-    public Claim(String id, Date claimDate, long cardNumber, Date examDate,
+    public Claim(String fullName, String id, Date claimDate, long cardNumber, Date examDate,
                  List<String> documents, double claimAmount, ClaimStatus status, ReceiverBankingInfo receiverBankingInfo) {
+        this.fullName = fullName;
         this.id = id;
         this.claimDate = claimDate;
         this.cardNumber = cardNumber;
@@ -211,6 +218,10 @@ class Claim {
         this.claimAmount = claimAmount;
         this.status = status;
         this.receiverBankingInfo = receiverBankingInfo;
+    }
+
+    public String getFullName() {
+        return fullName;
     }
 
     public String getId() {
@@ -336,7 +347,7 @@ class ClaimManager {
             documents.add(scanner.nextLine());
         }
         ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(bankName, accountName, accountNumber);
-        Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
+        Claim claim = new Claim(fullName, id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
         claims.add(claim);
         System.out.println("Claim added successfully.");
     }
@@ -375,10 +386,44 @@ class ClaimManager {
         System.out.println("Claim not found.");
     }
 
-    public static void viewAllClaims(List<Claim> claims) {
-        System.out.println("Viewing all claims...");
-        for (Claim claim : claims) {
-            System.out.println(claim);
+    public static void viewAllCustomersAndClaims(List<Customer> customers, List<Claim> claims) {
+        System.out.println("Viewing all customers and claims...");
+        for (Customer customer : customers) {
+            System.out.println("Customer Full Name: " + customer.getFullName());
+            System.out.println("Age: " + customer.getAge());
+            System.out.println("Gender: " + customer.getGender());
+            System.out.println("Address: " + customer.getAddress());
+            System.out.println("Phone Number: " + customer.getPhoneNumber());
+            System.out.println("Associated Claims:");
+            boolean foundClaim = false;
+            for (Claim claim : claims) {
+                if (claim.getFullName().equals(customer.getFullName())) {
+                    foundClaim = true;
+                    System.out.println("Claim ID: " + claim.getId());
+                    System.out.println("Claim date: " + claim.getClaimDate());
+                    System.out.println("Card number: " + claim.getCardNumber());
+                    System.out.println("Exam date: " + claim.getExamDate());
+                    System.out.println("Claim amount: " + claim.getClaimAmount());
+                    System.out.println("Status: " + claim.getStatus());
+                    ReceiverBankingInfo receiverInfo = claim.getReceiverBankingInfo();
+                    System.out.println("Bank name: " + receiverInfo.getBankName());
+                    System.out.println("Account name: " + receiverInfo.getAccountName());
+                    System.out.println("Account number: " + receiverInfo.getAccountNumber());
+                    List<String> documents = claim.getDocuments();
+                    System.out.println("Number of Documents: " + documents.size());
+                    if (!documents.isEmpty()) {
+                        System.out.println("Documents:");
+                        for (String document : documents) {
+                            System.out.println(document);
+                        }
+                    }
+                    System.out.println();
+                }
+            }
+            if (!foundClaim) {
+                System.out.println("No claims associated with this customer.");
+            }
+            System.out.println("--------------------------------------------");
         }
     }
 }
@@ -400,7 +445,7 @@ public class InsuranceClaimsSystem {
             System.out.println("1. Add a claim");
             System.out.println("2. Update a claim");
             System.out.println("3. Delete a claim");
-            System.out.println("4. View all claims");
+            System.out.println("4. View all customers and claims");
             System.out.println("5. Exit");
             System.out.print("Enter your choice: ");
 
@@ -418,7 +463,7 @@ public class InsuranceClaimsSystem {
                     ClaimManager.deleteClaim(scanner, claims);
                     break;
                 case 4:
-                    ClaimManager.viewAllClaims(claims);
+                    ClaimManager.viewAllCustomersAndClaims(customers, claims);
                     break;
                 case 5:
                     exit = true;
