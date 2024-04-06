@@ -45,14 +45,13 @@ class FileManager {
                 String[] claimData = scanner.nextLine().split(",");
                 String id = claimData[0];
                 Date claimDate = parseDate(claimData[1]);
-                String insuredPerson = claimData[2];
-                long cardNumber = Long.parseLong(claimData[3]);
-                Date examDate = parseDate(claimData[4]);
-                double claimAmount = Double.parseDouble(claimData[5]);
-                ClaimStatus status = ClaimStatus.valueOf(claimData[6]);
-                ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(claimData[7], claimData[8], claimData[9]);
+                long cardNumber = Long.parseLong(claimData[2]);
+                Date examDate = parseDate(claimData[3]);
+                double claimAmount = Double.parseDouble(claimData[4]);
+                ClaimStatus status = ClaimStatus.valueOf(claimData[5]);
+                ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(claimData[6], claimData[7], claimData[8]);
                 List<String> documents = new ArrayList<>();
-                for (int i = 10; i < claimData.length; i++) {
+                for (int i = 9; i < claimData.length; i++) {
                     documents.add(claimData[i]);
                 }
                 Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
@@ -306,7 +305,6 @@ class ClaimManager {
         String id = scanner.nextLine();
         System.out.print("Enter claim date (YYYY-MM-DD): ");
         Date claimDate = parseDate(scanner.nextLine());
-        // Remove the insuredPerson input as it's not needed anymore
         System.out.print("Enter card number: ");
         long cardNumber = Long.parseLong(scanner.nextLine());
         System.out.print("Enter exam date (YYYY-MM-DD): ");
@@ -329,7 +327,6 @@ class ClaimManager {
             documents.add(scanner.nextLine());
         }
         ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(bankName, accountName, accountNumber);
-        // Update the constructor call to remove the insuredPerson argument
         Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
         claims.add(claim);
         System.out.println("Claim added successfully.");
