@@ -15,6 +15,10 @@ class FileManager {
         try (Scanner scanner = new Scanner(new File(CUSTOMERS_FILE))) {
             while (scanner.hasNextLine()) {
                 String[] customerData = scanner.nextLine().split(",");
+                if (customerData.length < 5) {
+                    System.out.println("Invalid line format: " + Arrays.toString(customerData)); // Debug output
+                    continue; // Skip this line and proceed to the next one
+                }
                 String fullName = customerData[0];
                 int age = Integer.parseInt(customerData[1]);
                 String gender = customerData[2];
@@ -43,11 +47,15 @@ class FileManager {
         try (Scanner scanner = new Scanner(new File(CLAIMS_FILE))) {
             while (scanner.hasNextLine()) {
                 String[] claimData = scanner.nextLine().split(",");
+                if (claimData.length < 9) {
+                    System.out.println("Invalid line format: " + Arrays.toString(claimData)); // Debug output
+                    continue; // Skip this line and proceed to the next one
+                }
                 String id = claimData[0];
                 Date claimDate = parseDate(claimData[1]);
                 long cardNumber = Long.parseLong(claimData[2]);
                 Date examDate = parseDate(claimData[3]);
-                double claimAmount = Double.parseDouble(claimData[4]);
+                double claimAmount =- Double.parseDouble(claimData[4]);
                 ClaimStatus status = ClaimStatus.valueOf(claimData[5]);
                 ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(claimData[6], claimData[7], claimData[8]);
                 List<String> documents = new ArrayList<>();
@@ -135,7 +143,7 @@ class Customer {
 }
 
 abstract class Person {
-    protected String id; // Format c-numbers (c-0000001)
+    protected String id;
     protected String fullName;
 
     public Person(String id, String fullName) {
@@ -184,11 +192,11 @@ class InsuranceCard {
 }
 
 class Claim {
-    private String id; // Format f-numbers (f-0000000001)
+    private String id;
     private Date claimDate;
     private long cardNumber;
     private Date examDate;
-    private List<String> documents; // Format ClaimId_CardNumber_DocumentName.pdf
+    private List<String> documents;
     private double claimAmount;
     private ClaimStatus status;
     private ReceiverBankingInfo receiverBankingInfo;
@@ -212,6 +220,7 @@ class Claim {
     public Date getClaimDate() {
         return claimDate;
     }
+
     public long getCardNumber() {
         return cardNumber;
     }
@@ -331,6 +340,7 @@ class ClaimManager {
         claims.add(claim);
         System.out.println("Claim added successfully.");
     }
+
     public static void updateClaim(Scanner scanner, List<Claim> claims) {
         System.out.print("Enter claim ID to update: ");
         String idToUpdate = scanner.nextLine();
