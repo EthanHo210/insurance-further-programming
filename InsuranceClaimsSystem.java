@@ -51,22 +51,19 @@ class FileManager {
                     System.out.println("Invalid line format: " + Arrays.toString(claimData)); // Debug output
                     continue; // Skip this line and proceed to the next one
                 }
-                String fullName = claimData[0];
-                String id = claimData[1];
-                Date claimDate = parseDate(claimData[2]);
-                long cardNumber = Long.parseLong(claimData[3]);
-                Date examDate = parseDate(claimData[4]);
-                double claimAmount = Double.parseDouble(claimData[5]);
-                ClaimStatus status = ClaimStatus.valueOf(claimData[6]);
-                String bankName = claimData[7];
-                String accountName = claimData[8];
-                String accountNumber = claimData[9];
+                String id = claimData[0];
+                Date claimDate = parseDate(claimData[1]);
+                long cardNumber = Long.parseLong(claimData[2]);
+                Date examDate = parseDate(claimData[3]);
+                double claimAmount = Double.parseDouble(claimData[4]);
+                ClaimStatus status = ClaimStatus.valueOf(claimData[5]);
+                ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(claimData[6], claimData[7], claimData[8]);
                 List<String> documents = new ArrayList<>();
-                for (int i = 10; i < claimData.length; i++) {
+                for (int i = 9; i < claimData.length; i++) {
                     documents.add(claimData[i]);
                 }
-                ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(bankName, accountName, accountNumber);
-                Claim claim = new Claim(fullName, id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
+                String fullName = claimData[9]; // Assuming Full Name is at index 9
+                Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo, fullName);
                 claims.add(claim);
             }
         } catch (FileNotFoundException e) {
@@ -79,8 +76,7 @@ class FileManager {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             for (Claim claim : claims) {
                 StringBuilder claimData = new StringBuilder();
-                claimData.append(claim.getFullName()).append(",")
-                        .append(claim.getId()).append(",")
+                claimData.append(claim.getId()).append(",")
                         .append(dateFormat.format(claim.getClaimDate())).append(",")
                         .append(claim.getCardNumber()).append(",")
                         .append(dateFormat.format(claim.getExamDate())).append(",")
@@ -88,7 +84,8 @@ class FileManager {
                         .append(claim.getStatus()).append(",")
                         .append(claim.getReceiverBankingInfo().getBankName()).append(",")
                         .append(claim.getReceiverBankingInfo().getAccountName()).append(",")
-                        .append(claim.getReceiverBankingInfo().getAccountNumber());
+                        .append(claim.getReceiverBankingInfo().getAccountNumber()).append(",")
+                        .append(claim.getFullName()); // Adding Full Name to the claim data
 
                 for (String document : claim.getDocuments()) {
                     claimData.append(",").append(document);
@@ -126,6 +123,7 @@ class Customer {
         this.phoneNumber = phoneNumber;
     }
 
+    // Getters and setters
     public String getFullName() {
         return fullName;
     }
@@ -144,6 +142,10 @@ class Customer {
 
     public String getPhoneNumber() {
         return phoneNumber;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 }
 
@@ -197,7 +199,6 @@ class InsuranceCard {
 }
 
 class Claim {
-    private String fullName;
     private String id;
     private Date claimDate;
     private long cardNumber;
@@ -206,10 +207,11 @@ class Claim {
     private double claimAmount;
     private ClaimStatus status;
     private ReceiverBankingInfo receiverBankingInfo;
+    private String fullName; // Adding Full Name attribute
 
-    public Claim(String fullName, String id, Date claimDate, long cardNumber, Date examDate,
-                 List<String> documents, double claimAmount, ClaimStatus status, ReceiverBankingInfo receiverBankingInfo) {
-        this.fullName = fullName;
+    public Claim(String id, Date claimDate, long cardNumber, Date examDate,
+                 List<String> documents, double claimAmount, ClaimStatus status,
+                 ReceiverBankingInfo receiverBankingInfo, String fullName) {
         this.id = id;
         this.claimDate = claimDate;
         this.cardNumber = cardNumber;
@@ -218,18 +220,20 @@ class Claim {
         this.claimAmount = claimAmount;
         this.status = status;
         this.receiverBankingInfo = receiverBankingInfo;
+        this.fullName = fullName;
     }
 
-    public String getFullName() {
-        return fullName;
-    }
-
+    // Getters and setters for other attributes
     public String getId() {
         return id;
     }
 
     public Date getClaimDate() {
         return claimDate;
+    }
+
+    public void setClaimDate(Date claimDate) {
+        this.claimDate = claimDate;
     }
 
     public long getCardNumber() {
@@ -256,8 +260,8 @@ class Claim {
         return receiverBankingInfo;
     }
 
-    public void setClaimDate(Date claimDate) {
-        this.claimDate = claimDate;
+    public String getFullName() {
+        return fullName;
     }
 }
 
@@ -347,7 +351,7 @@ class ClaimManager {
             documents.add(scanner.nextLine());
         }
         ReceiverBankingInfo receiverBankingInfo = new ReceiverBankingInfo(bankName, accountName, accountNumber);
-        Claim claim = new Claim(fullName, id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo);
+        Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo, fullName);
         claims.add(claim);
         System.out.println("Claim added successfully.");
     }
@@ -364,7 +368,8 @@ class ClaimManager {
         }
         if (claimToUpdate != null) {
             System.out.print("Enter new claim date (YYYY-MM-DD): ");
-            claimToUpdate.setClaimDate(parseDate(scanner.nextLine()));
+            Date newClaimDate = parseDate(scanner.nextLine());
+            claimToUpdate.setClaimDate(newClaimDate);
             System.out.println("Claim updated successfully.");
         } else {
             System.out.println("Claim not found.");
@@ -389,68 +394,107 @@ class ClaimManager {
     public static void viewAllCustomersAndClaims(List<Customer> customers, List<Claim> claims) {
         System.out.println("Viewing all customers and claims...");
         for (Customer customer : customers) {
-            System.out.println("Customer Full Name: " + customer.getFullName());
+            System.out.println("Customer Information:");
+            System.out.println("Full Name: " + customer.getFullName());
             System.out.println("Age: " + customer.getAge());
             System.out.println("Gender: " + customer.getGender());
             System.out.println("Address: " + customer.getAddress());
             System.out.println("Phone Number: " + customer.getPhoneNumber());
-            System.out.println("Associated Claims:");
-            boolean foundClaim = false;
+
+            System.out.println("\nAssociated Claims:");
             for (Claim claim : claims) {
                 if (claim.getFullName().equals(customer.getFullName())) {
-                    foundClaim = true;
-                    System.out.println("Claim ID: " + claim.getId());
-                    System.out.println("Claim date: " + claim.getClaimDate());
-                    System.out.println("Card number: " + claim.getCardNumber());
-                    System.out.println("Exam date: " + claim.getExamDate());
-                    System.out.println("Claim amount: " + claim.getClaimAmount());
-                    System.out.println("Status: " + claim.getStatus());
+                    System.out.println("\tClaim ID: " + claim.getId());
+                    System.out.println("\tClaim date: " + claim.getClaimDate());
+                    System.out.println("\tCard number: " + claim.getCardNumber());
+                    System.out.println("\tExam date: " + claim.getExamDate());
+                    System.out.println("\tClaim amount: $" + claim.getClaimAmount());
+                    System.out.println("\tStatus: " + claim.getStatus());
                     ReceiverBankingInfo receiverInfo = claim.getReceiverBankingInfo();
-                    System.out.println("Bank name: " + receiverInfo.getBankName());
-                    System.out.println("Account name: " + receiverInfo.getAccountName());
-                    System.out.println("Account number: " + receiverInfo.getAccountNumber());
+                    System.out.println("\tBank name: " + receiverInfo.getBankName());
+                    System.out.println("\tAccount name: " + receiverInfo.getAccountName());
+                    System.out.println("\tAccount number: " + receiverInfo.getAccountNumber());
                     List<String> documents = claim.getDocuments();
-                    System.out.println("Number of Documents: " + documents.size());
+                    System.out.println("\tNumber of Documents: " + documents.size());
                     if (!documents.isEmpty()) {
-                        System.out.println("Documents:");
+                        System.out.println("\tDocuments:");
                         for (String document : documents) {
-                            System.out.println(document);
+                            System.out.println("\t" + document);
                         }
                     }
                     System.out.println();
                 }
             }
-            if (!foundClaim) {
-                System.out.println("No claims associated with this customer.");
+        }
+    }
+
+    public static void viewOneCustomerAndClaim(Scanner scanner, List<Customer> customers, List<Claim> claims) {
+        System.out.print("Enter the full name of the customer to view: ");
+        String fullName = scanner.nextLine();
+        boolean found = false;
+        for (Customer customer : customers) {
+            if (customer.getFullName().equalsIgnoreCase(fullName)) {
+                found = true;
+                System.out.println("Customer Information:");
+                System.out.println("Full Name: " + customer.getFullName());
+                System.out.println("Age: " + customer.getAge());
+                System.out.println("Gender: " + customer.getGender());
+                System.out.println("Address: " + customer.getAddress());
+                System.out.println("Phone Number: " + customer.getPhoneNumber());
+
+                System.out.println("\nAssociated Claims:");
+                for (Claim claim : claims) {
+                    if (claim.getFullName().equals(customer.getFullName())) {
+                        System.out.println("\tClaim ID: " + claim.getId());
+                        System.out.println("\tClaim date: " + claim.getClaimDate());
+                        System.out.println("\tCard number: " + claim.getCardNumber());
+                        System.out.println("\tExam date: " + claim.getExamDate());
+                        System.out.println("\tClaim amount: $" + claim.getClaimAmount());
+                        System.out.println("\tStatus: " + claim.getStatus());
+                        ReceiverBankingInfo receiverInfo = claim.getReceiverBankingInfo();
+                        System.out.println("\tBank name: " + receiverInfo.getBankName());
+                        System.out.println("\tAccount name: " + receiverInfo.getAccountName());
+                        System.out.println("\tAccount number: " + receiverInfo.getAccountNumber());
+                        List<String> documents = claim.getDocuments();
+                        System.out.println("\tNumber of Documents: " + documents.size());
+                        if (!documents.isEmpty()) {
+                            System.out.println("\tDocuments:");
+                            for (String document : documents) {
+                                System.out.println("\t" + document);
+                            }
+                        }
+                        System.out.println();
+                    }
+                }
+                break;
             }
-            System.out.println("--------------------------------------------");
+        }
+        if (!found) {
+            System.out.println("Customer not found.");
         }
     }
 }
 
 public class InsuranceClaimsSystem {
     public static void main(String[] args) {
-        // Initialize system components
         List<Customer> customers = new ArrayList<>();
         List<Claim> claims = new ArrayList<>();
+
         FileManager.readCustomersFromFile(customers);
         FileManager.readClaimsFromFile(claims);
 
-        // Sample interaction (actual UI implementation may vary)
         Scanner scanner = new Scanner(System.in);
-        boolean exit = false;
 
-        while (!exit) {
-            System.out.println("\nInsurance Claims Management System");
+        while (true) {
+            System.out.println("Insurance Claims System");
             System.out.println("1. Add a claim");
             System.out.println("2. Update a claim");
             System.out.println("3. Delete a claim");
-            System.out.println("4. View all customers and claims");
-            System.out.println("5. Exit");
+            System.out.println("4. View one customer and claim");
+            System.out.println("5. View all customers and claims");
+            System.out.println("6. Exit");
             System.out.print("Enter your choice: ");
-
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // Consume newline after number input
+            int choice = Integer.parseInt(scanner.nextLine());
 
             switch (choice) {
                 case 1:
@@ -463,20 +507,20 @@ public class InsuranceClaimsSystem {
                     ClaimManager.deleteClaim(scanner, claims);
                     break;
                 case 4:
-                    ClaimManager.viewAllCustomersAndClaims(customers, claims);
+                    ClaimManager.viewOneCustomerAndClaim(scanner, customers, claims);
                     break;
                 case 5:
-                    exit = true;
+                    ClaimManager.viewAllCustomersAndClaims(customers, claims);
+                    break;
+                case 6:
+                    FileManager.writeCustomersToFile(customers);
+                    FileManager.writeClaimsToFile(claims);
+                    System.out.println("Exiting... Goodbye!");
+                    System.exit(0);
                     break;
                 default:
-                    System.out.println("Invalid choice. Please try again.");
+                    System.out.println("Invalid choice. Please enter a number between 1 and 6.");
             }
-
-            // Write data back to files before exiting
-            FileManager.writeCustomersToFile(customers);
-            FileManager.writeClaimsToFile(claims);
         }
-        // Close scanner
-        scanner.close();
     }
 }
