@@ -117,11 +117,12 @@
      }
  
      // Method to parse date string into Date object
-     private static Date parseDate(String dateStr) {
+     private static Date parseDate(String dateString) {
+         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
          try {
-             return new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
+             return dateFormat.parse(dateString);
          } catch (ParseException e) {
-             e.printStackTrace();
+             System.err.println("Error parsing date. Please enter date in format YYYY-MM-DD.");
              return null;
          }
      }
@@ -667,4 +668,3 @@
      }
  }
  
- //End of program
