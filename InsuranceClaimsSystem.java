@@ -354,6 +354,10 @@ class ClaimManager {
         Claim claim = new Claim(id, claimDate, cardNumber, examDate, documents, claimAmount, status, receiverBankingInfo, fullName);
         claims.add(claim);
         System.out.println("Claim added successfully.");
+
+        // Save customers and claims immediately after addition
+        FileManager.writeCustomersToFile(customers);
+        FileManager.writeClaimsToFile(claims);
     }
 
     public static void updateClaim(Scanner scanner, List<Claim> claims) {
@@ -371,24 +375,52 @@ class ClaimManager {
             Date newClaimDate = parseDate(scanner.nextLine());
             claimToUpdate.setClaimDate(newClaimDate);
             System.out.println("Claim updated successfully.");
+
+            // Save claims immediately after update
+            FileManager.writeClaimsToFile(claims);
         } else {
             System.out.println("Claim not found.");
         }
     }
 
-    public static void deleteClaim(Scanner scanner, List<Claim> claims) {
+    public static void deleteClaim(Scanner scanner, List<Claim> claims, List<Customer> customers) {
         System.out.print("Enter claim ID to delete: ");
         String idToDelete = scanner.nextLine();
-        Iterator<Claim> iterator = claims.iterator();
-        while (iterator.hasNext()) {
-            Claim claim = iterator.next();
+        boolean found = false;
+        Iterator<Claim> claimIterator = claims.iterator();
+        while (claimIterator.hasNext()) {
+            Claim claim = claimIterator.next();
             if (claim.getId().equals(idToDelete)) {
-                iterator.remove();
+                claimIterator.remove();
                 System.out.println("Claim deleted successfully.");
-                return;
+                found = true;
+                break;
             }
         }
-        System.out.println("Claim not found.");
+        if (!found) {
+            System.out.println("Claim not found.");
+            return;
+        }
+
+        // Remove associated customer if no other claims are associated with them
+        Iterator<Customer> customerIterator = customers.iterator();
+        while (customerIterator.hasNext()) {
+            Customer customer = customerIterator.next();
+            boolean associatedClaimExists = false;
+            for (Claim claim : claims) {
+                if (claim.getFullName().equalsIgnoreCase(customer.getFullName())) {
+                    associatedClaimExists = true;
+                    break;
+                }
+            }
+            if (!associatedClaimExists) {
+                customerIterator.remove();
+                System.out.println("Customer '" + customer.getFullName() + "' removed as no associated claims exist.");
+            }
+        }
+        // Save customers and claims immediately after deletion
+        FileManager.writeCustomersToFile(customers);
+        FileManager.writeClaimsToFile(claims);
     }
 
     public static void viewAllCustomersAndClaims(List<Customer> customers, List<Claim> claims) {
@@ -504,7 +536,7 @@ public class InsuranceClaimsSystem {
                     ClaimManager.updateClaim(scanner, claims);
                     break;
                 case 3:
-                    ClaimManager.deleteClaim(scanner, claims);
+                    ClaimManager.deleteClaim(scanner, claims, customers);
                     break;
                 case 4:
                     ClaimManager.viewOneCustomerAndClaim(scanner, customers, claims);
