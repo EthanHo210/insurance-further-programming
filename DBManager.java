@@ -1,5 +1,6 @@
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 
 public class DBManager {
     public Connection db_connection(String dbname, String user, String pass) {
@@ -12,8 +13,12 @@ public class DBManager {
             } else {
                 System.out.println("Failed");
             }
-        } catch (Exception e) {
-            System.out.println("Couldn't connect");
+        } catch (ClassNotFoundException e) {
+            System.out.println("PostgreSQL JDBC Driver not found.");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.out.println("Connection failed.");
+            e.printStackTrace();
         }
         return connect;
     }
