@@ -618,6 +618,8 @@
  // Main class representing the Insurance Claims System
  public class InsuranceClaimsSystem {
      public static void main(String[] args) {
+         DBManager db=new DBManager();
+         db.db_connection("Customer","postgres","admin");
          List<Customer> customers = new ArrayList<>();
          List<Claim> claims = new ArrayList<>();
  
